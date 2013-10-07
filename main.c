@@ -19,6 +19,6 @@ int main( int argc, char *argv[] )
 {
   SetDbgMemHooks();
 
-  parseArguments(argc, argv);
+  errorPrint(stdout, parseArguments(argc, argv));
   return 0;
 }

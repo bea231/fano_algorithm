@@ -1,2 +1,1 @@
 OPTION("-t", optionT, "-t <file name>         encode/decode file with <file name> probability table")
-OPTION("", NULL, "")

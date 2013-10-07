@@ -9,7 +9,7 @@ static char *s_Errors[] =
 };
 #undef ERROR
 
-void ErrorPrint( FILE *outStream, error_code_t code )
+void errorPrint( FILE *outStream, error_code_t code )
 {
   char *outStr = "";
 

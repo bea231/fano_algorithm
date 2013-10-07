@@ -12,6 +12,6 @@ typedef enum tag_error_code_t
 } error_code_t;
 #undef  ERROR
 
-void ErrorPrint( FILE *outStream, error_code_t code );
+void errorPrint( FILE *outStream, error_code_t code );
 
 #endif /* _ERRORS_H_ */

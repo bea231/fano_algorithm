@@ -10,7 +10,10 @@
 typedef struct tag_command
 {
   char *name;                                              // Command name
-  error_code_t (*commandFunc)( alg_parameters_t parameters );  // Pointer to command's execution function
+
+  // Pointer to command's execution function
+  error_code_t (*commandFunc)( alg_parameters_t parameters );
+
   char *help;                                              // Comment to command
 } command_t;
 
