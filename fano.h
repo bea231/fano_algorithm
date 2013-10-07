@@ -5,6 +5,8 @@
 
 #include "errors.h"
 
+#define MAX_CHARACTERS_NUM 256
+
 typedef struct tag_alg_parameters
 {
   char *codingFileName,

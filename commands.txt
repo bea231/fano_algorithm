@@ -1,4 +1,3 @@
 COMMAND("h", commandHelp,    "")
 COMMAND("a", commandEncode,  "a        encode file command")
 COMMAND("x", commandDecode,  "x        decode file command")
-COMMAND("exit", commandExit, "exit     exit from program")

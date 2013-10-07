@@ -6,6 +6,8 @@
 #include "fano.h"
 #include "errors.h"
 
+#define DEFAULT_CODES_FILE "defcodes.txt"
+
 /* Command representation type */
 typedef struct tag_command
 {

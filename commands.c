@@ -24,14 +24,9 @@ error_code_t commandHelp( alg_parameters_t parameters )
   return ERROR_SUCCESS;
 }
 
-error_code_t commandExit( alg_parameters_t parameters )
-{
-  return ERROR_SUCCESS;
-}
-
 error_code_t commandEncode( alg_parameters_t parameters )
 {
-  return ERROR_SUCCESS;
+  return fanoEncode(parameters);
 }
 
 error_code_t commandDecode( alg_parameters_t parameters )
@@ -93,7 +88,7 @@ error_code_t parseArguments( int argc, char *argv[] )
   command_t        *command;
   option_t         *option;
   unsigned int     argumentIndex = 1;
-  alg_parameters_t parameters = {0};
+  alg_parameters_t parameters = {DEFAULT_CODES_FILE, NULL, NULL};
 
   if (argc < 3 || argc > 6)
     return ERROR_COMMAND_INVALID_PARAMETERS_COUNT;

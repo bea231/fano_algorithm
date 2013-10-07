@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-void bitWInit( FILE *F );
+void bitWriteInit( FILE *F );
 void bitWrite( int bit );
 void bitsWrite( int Bits, int Len );
 int  bitWriteClose( void );

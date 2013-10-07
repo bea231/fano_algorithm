@@ -9,7 +9,7 @@ static unsigned char s_BitWRAccum;
 static int s_BitWRPos;
 static FILE *s_BitWRF;
 
-void bitWInit( FILE *F )
+void bitWriteInit( FILE *F )
 {
   s_BitWRPos = BIT_BUF_SIZE;
   s_BitWRAccum = 0;
