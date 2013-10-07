@@ -1,6 +1,7 @@
 /* Sergeev Artemiy, 33601/2 (3057/2), 07.10.2013 */
 
 #include <stdio.h>
+#include "commands.h"
 
 /* Debug memory check support */
 #ifdef _DEBUG
@@ -14,8 +15,10 @@
   #define SetDbgMemHooks() 0
 #endif /* _DEBUG */
 
-int main( void )
+int main( int argc, char *argv[] )
 {
   SetDbgMemHooks();
+
+  parseArguments(argc, argv);
   return 0;
 }
