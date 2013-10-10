@@ -31,7 +31,7 @@ error_code_t commandEncode( alg_parameters_t parameters )
 
 error_code_t commandDecode( alg_parameters_t parameters )
 {
-  return ERROR_SUCCESS;
+  return fanoDecode(parameters);
 }
 
 /*** Options ***/

@@ -33,13 +33,29 @@ static void s_fanoAlgorithm( probability_char_t *probTable, binary_code_t *codes
 {
   if (end > begin)
   {
-    unsigned int median = s_getMedian(probTable, begin, end), i;
+    unsigned int median = s_getMedian(probTable, begin, end), i, length;
 
     for (i = begin; i <= end; i++)
-      codes[probTable[i].character].code |= ((i > median) << (codes[probTable[i].character].length++));
+    { 
+      length = codes[probTable[i].character].length;
+
+      codes[probTable[i].character].code[length / 8] |= ((i > median) << (length));
+      ++codes[probTable[i].character].length;
+    }
 
     s_fanoAlgorithm(probTable, codes, begin, median);
     s_fanoAlgorithm(probTable, codes, median + 1, end);
+  }
+}
+
+static void s_fanoBuildMedians( probability_char_t *probTable, int *medians, int medianIndex, int begin, int end )
+{
+  if (end > begin)
+  {
+    medians[medianIndex] = s_getMedian(probTable, begin, end);
+
+    s_fanoBuildMedians(probTable, medians, 2 * medianIndex + 1, begin, medians[medianIndex]);
+    s_fanoBuildMedians(probTable, medians, 2 * medianIndex + 2, medians[medianIndex] + 1, end);
   }
 }
 
@@ -116,7 +132,7 @@ static error_code_t s_initProbabilityTable( probability_char_t *probTable, FILE 
     if ((fscanf(codesFile, "%50s", buf)) <= 0 || ferror(codesFile))
       return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
 
-    if (probTable[character].probability == 0)
+    if (probTable[character].character == 0)
        numOfCharacters++;
     else
       totalProbability -= probTable[character].probability;
@@ -134,9 +150,9 @@ static error_code_t s_initProbabilityTable( probability_char_t *probTable, FILE 
   if (numOfCharacters < MAX_CHARACTERS_NUM - 1)
   {
     probability = (1.0 - totalProbability) / (MAX_CHARACTERS_NUM - numOfCharacters - 1);
-    for (i = 0; i < MAX_CHARACTERS_NUM; i++)
+    for (i = 1; i < MAX_CHARACTERS_NUM; i++)
     {
-      if (probTable[i].probability == 0)
+      if (probTable[i].character == 0)
       {
         probTable[i].character   = i;
         probTable[i].probability = probability;
@@ -182,8 +198,8 @@ error_code_t fanoEncode( alg_parameters_t parameters )
 
   if ((errorJumpCode = s_initProbabilityTable(probTable, codesFile)) != ERROR_SUCCESS)
     longjmp(jmpBuf, errorJumpCode);
-  s_QuickSort(probTable, MAX_CHARACTERS_NUM);
-  s_fanoAlgorithm(probTable, codes, 0, MAX_CHARACTERS_NUM - 1);
+  s_QuickSort(probTable + 1, MAX_CHARACTERS_NUM);
+  s_fanoAlgorithm(probTable, codes, 1, MAX_CHARACTERS_NUM - 1);
 
 
   bitWriteInit(outputFile);
@@ -191,7 +207,7 @@ error_code_t fanoEncode( alg_parameters_t parameters )
   {
     for (i = 0; i < codes[character].length; i++)
     {
-      bitWrite((codes[character].code & (1 << i)) > 0 ? 1 : 0);
+      bitWrite((codes[character].code[i / 8] & (1 << i)) > 0 ? 1 : 0);
       bitsCount++;
     }
   }
@@ -202,5 +218,84 @@ error_code_t fanoEncode( alg_parameters_t parameters )
 
 error_code_t fanoDecode( alg_parameters_t parameters )
 {
+  jmp_buf            jmpBuf;
+  error_code_t       errorJumpCode;
+  unsigned int       i;
+  int                character,
+                     curCode, curMedian, maxCode,
+                     medians[3 * MAX_CHARACTERS_NUM] = {0};
+  FILE               *inputFile                    = NULL,
+                     *outputFile                   = NULL, 
+                     *codesFile                    = NULL;
+  probability_char_t probTable[MAX_CHARACTERS_NUM] = {0};
+  binary_code_t      codes[MAX_CHARACTERS_NUM]     = {0};
+  unsigned long      bitsCount                     = 0;
+  
+
+  /* Error handler */
+  if (errorJumpCode = setjmp(jmpBuf))
+  {  
+    if (inputFile)
+      fclose(inputFile), inputFile = NULL;
+    if (outputFile)
+      fclose(outputFile), outputFile = NULL;
+    if (codesFile)
+      fclose(codesFile), codesFile = NULL;
+    return errorJumpCode;
+  }
+
+  /* Open some files */
+  if ((inputFile = fopen(parameters.inputFileName, "rb")) == NULL)
+    longjmp(jmpBuf, ERROR_FANO_FILE_NOT_FOUND);
+  if ((outputFile = fopen(parameters.outputFileName, "wb")) == NULL)
+    longjmp(jmpBuf, ERROR_FANO_FILE_NOT_FOUND);
+  if ((codesFile = fopen(parameters.codingFileName, "rb")) == NULL)
+      longjmp(jmpBuf, ERROR_FANO_FILE_NOT_FOUND);
+
+  if ((errorJumpCode = s_initProbabilityTable(probTable, codesFile)) != ERROR_SUCCESS)
+    longjmp(jmpBuf, errorJumpCode);
+  s_QuickSort(probTable + 1, MAX_CHARACTERS_NUM);
+  s_fanoBuildMedians(probTable, medians, 0, 1, MAX_CHARACTERS_NUM - 1);
+
+  fseek(inputFile, -(long)sizeof(unsigned long), SEEK_END);
+  fread(&bitsCount, sizeof(unsigned long), 1, inputFile);
+  if (ferror(inputFile))
+    longjmp(jmpBuf, ERROR_FANO_DECODE_INVALID_FILE_FORMAT);
+  fseek(inputFile, 0, SEEK_SET);
+
+  bitReadInit(inputFile);
+  curMedian = 0;
+  curCode = 1;
+  maxCode = MAX_CHARACTERS_NUM - 1;
+  for (i = 0; i < bitsCount; i++)
+  {
+    character = bitRead();
+    if (character == 1)
+    {
+      curCode   = medians[curMedian] + 1;
+      curMedian = 2 * curMedian + 2;
+    }
+    else if (character == 0)
+    {
+      maxCode   = medians[curMedian];
+      curMedian = 2 * curMedian + 1;
+    }
+    else
+      longjmp(jmpBuf, ERROR_FANO_DECODE_INVALID_FILE_FORMAT);
+
+    if (maxCode <= curCode)
+    {
+      fputc(probTable[curCode].character, outputFile);
+      curMedian = 0;
+      curCode = 1;
+      maxCode = MAX_CHARACTERS_NUM - 1;
+      continue;
+    }
+
+    if (curMedian > 3 * MAX_CHARACTERS_NUM || ferror(inputFile))
+      longjmp(jmpBuf, ERROR_FANO_DECODE_INVALID_FILE_FORMAT);
+  }
+
+  longjmp(jmpBuf, ERROR_SUCCESS);
   return ERROR_SUCCESS;
 }

@@ -16,7 +16,7 @@ typedef struct tag_alg_parameters
 
 typedef struct tag_binary_code
 {
-  unsigned long code;
+  unsigned char code[32];
   unsigned char length;
 } binary_code_t;
 
