@@ -8,7 +8,6 @@
 
 #define _ABS(x) ((x) > 0 ? (x) : -(x))
 
-
 static unsigned int s_getMedian( probability_char_t *probTable, unsigned int begin, unsigned int end )
 {
   double       sumBegin = probTable[begin].probability,
@@ -39,7 +38,7 @@ static void s_fanoAlgorithm( probability_char_t *probTable, binary_code_t *codes
     { 
       length = codes[probTable[i].character].length;
 
-      codes[probTable[i].character].code[length / 8] |= ((i > median) << (length));
+      codes[probTable[i].character].code[length / 8] |= ((i > median) << (length % 8));
       ++codes[probTable[i].character].length;
     }
 
@@ -207,7 +206,7 @@ error_code_t fanoEncode( alg_parameters_t parameters )
   {
     for (i = 0; i < codes[character].length; i++)
     {
-      bitWrite((codes[character].code[i / 8] & (1 << i)) > 0 ? 1 : 0);
+      bitWrite((codes[character].code[i / 8] & (1 << (i % 8))) > 0 ? 1 : 0);
       bitsCount++;
     }
   }
