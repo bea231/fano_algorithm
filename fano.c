@@ -7,6 +7,7 @@
 #include "fano.h"
 
 #define _ABS(x) ((x) > 0 ? (x) : -(x))
+#define EPSILON 1e-8
 
 static unsigned int s_getMedian( probability_char_t *probTable, unsigned int begin, unsigned int end )
 {
@@ -139,12 +140,15 @@ static error_code_t s_initProbabilityTable( probability_char_t *probTable, FILE 
     probTable[character].character = character;
     totalProbability += probTable[character].probability = strtod(buf, &tmp);
 
-    if (tmp == buf)
+    if (tmp == buf || probTable[character].probability <= 0 || probTable[character].probability > 1 + EPSILON)
       return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
     while (isspace(character = fgetc(codesFile)) && character != '\n' && character != EOF)
       if (ferror(codesFile))
         return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
   }
+
+  if (totalProbability > 1 + EPSILON || totalProbability < 1 - EPSILON)
+    return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
 
   if (numOfCharacters < MAX_CHARACTERS_NUM - 1)
   {
@@ -222,7 +226,7 @@ error_code_t fanoDecode( alg_parameters_t parameters )
   unsigned int       i;
   int                character,
                      curCode, curMedian, maxCode,
-                     medians[3 * MAX_CHARACTERS_NUM] = {0};
+                     medians[MAX_TREE_LEVEL * MAX_CHARACTERS_NUM] = {0};
   FILE               *inputFile                    = NULL,
                      *outputFile                   = NULL, 
                      *codesFile                    = NULL;
@@ -291,7 +295,7 @@ error_code_t fanoDecode( alg_parameters_t parameters )
       continue;
     }
 
-    if (curMedian > 3 * MAX_CHARACTERS_NUM || ferror(inputFile))
+    if (curMedian > sizeof(medians) / sizeof(medians[0]) || ferror(inputFile))
       longjmp(jmpBuf, ERROR_FANO_DECODE_INVALID_FILE_FORMAT);
   }
 

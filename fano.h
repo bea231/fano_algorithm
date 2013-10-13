@@ -6,6 +6,7 @@
 #include "errors.h"
 
 #define MAX_CHARACTERS_NUM 256
+#define MAX_TREE_LEVEL     10
 
 typedef struct tag_alg_parameters
 {
