@@ -117,9 +117,9 @@ static error_code_t s_initProbabilityTable( probability_char_t *probTable, FILE 
     else if (character == '\\' && fgetc(codesFile) == 'x')
     {
       /* Read a hex code of character */
-      char code[2] = {0};
+      char code[3] = {0};
 
-      if (fgets(code, 2, codesFile) == NULL)
+      if (fgets(code, 3, codesFile) == NULL)
         return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
       
       character = strtoul(code, &tmp, 16);
@@ -147,12 +147,12 @@ static error_code_t s_initProbabilityTable( probability_char_t *probTable, FILE 
         return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
   }
 
-  if (totalProbability > 1 + EPSILON || totalProbability < 1 - EPSILON)
+  if (totalProbability > 1 + EPSILON)
     return ERROR_FANO_CODE_INVALID_FILE_FORMAT;
 
   if (numOfCharacters < MAX_CHARACTERS_NUM - 1)
   {
-    probability = (1.0 - totalProbability) / (MAX_CHARACTERS_NUM - numOfCharacters - 1);
+    probability = (1.0 - totalProbability + EPSILON) / (MAX_CHARACTERS_NUM - numOfCharacters - 1);
     for (i = 1; i < MAX_CHARACTERS_NUM; i++)
     {
       if (probTable[i].character == 0)
@@ -169,7 +169,7 @@ error_code_t fanoEncode( alg_parameters_t parameters )
 {
   jmp_buf            jmpBuf;
   error_code_t       errorJumpCode;
-  unsigned int       i;
+  unsigned int       i, firstNull = 0;
   int                character;
   FILE               *inputFile                    = NULL,
                      *outputFile                   = NULL, 
@@ -201,7 +201,7 @@ error_code_t fanoEncode( alg_parameters_t parameters )
 
   if ((errorJumpCode = s_initProbabilityTable(probTable, codesFile)) != ERROR_SUCCESS)
     longjmp(jmpBuf, errorJumpCode);
-  s_QuickSort(probTable + 1, MAX_CHARACTERS_NUM);
+  s_QuickSort(probTable + 1, MAX_CHARACTERS_NUM);  
   s_fanoAlgorithm(probTable, codes, 1, MAX_CHARACTERS_NUM - 1);
 
 
@@ -214,8 +214,11 @@ error_code_t fanoEncode( alg_parameters_t parameters )
       bitsCount++;
     }
   }
-  bitWriteClose();
-  fwrite(&bitsCount, sizeof(unsigned long), 1, outputFile);
+  //bitWriteClose();
+  //fwrite(&bitsCount, sizeof(unsigned long), 1, outputFile);
+  bitsCount = bitWriteClose();
+  fwrite(&bitsCount, sizeof(unsigned char), 1, outputFile);
+  
   longjmp(jmpBuf, ERROR_SUCCESS);
 }
 
@@ -232,7 +235,8 @@ error_code_t fanoDecode( alg_parameters_t parameters )
                      *codesFile                    = NULL;
   probability_char_t probTable[MAX_CHARACTERS_NUM] = {0};
   binary_code_t      codes[MAX_CHARACTERS_NUM]     = {0};
-  unsigned long      bitsCount                     = 0;
+  unsigned long      bitsCount                     = 0, 
+                     fileLength                    = 0;
   
 
   /* Error handler */
@@ -260,8 +264,10 @@ error_code_t fanoDecode( alg_parameters_t parameters )
   s_QuickSort(probTable + 1, MAX_CHARACTERS_NUM);
   s_fanoBuildMedians(probTable, medians, 0, 1, MAX_CHARACTERS_NUM - 1);
 
-  fseek(inputFile, -(long)sizeof(unsigned long), SEEK_END);
+  fseek(inputFile, -(long)sizeof(unsigned char), SEEK_END);
+  fileLength = ftell(inputFile);
   fread(&bitsCount, sizeof(unsigned long), 1, inputFile);
+  bitsCount += (fileLength - 1) * 8;
   if (ferror(inputFile))
     longjmp(jmpBuf, ERROR_FANO_DECODE_INVALID_FILE_FORMAT);
   fseek(inputFile, 0, SEEK_SET);
