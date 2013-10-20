@@ -2,15 +2,27 @@ fano_algorithm
 ==============
 
 Utility for encode and decode ASCII files.
+Command format
+-----------
+**encode**
+```
+  fano a [-t <probability table>] <input file> <output file>
+```
+**decode**
+```
+  fano a [-t <probability table>] <input file> <output file>
+```
+**help**
+```
+  fano h
+```
 
-Command format:
-
-fano.exe <command> <options> <input file> <output file>
-
-Commands:
-h - help
-a - encode file
-x - decode file
-
-Options:
--t <file> - use <file> as a file with characters probatilities table
+Probability table
+-----------
+Probability table is a text file with pairs:
+```
+<ASCII character> <probability>  
+```
+*ASCII character can be:* 
+* ```<character symbol>``` for example ```a```
+* ```<character hex-code>``` for example ```\x0A```
